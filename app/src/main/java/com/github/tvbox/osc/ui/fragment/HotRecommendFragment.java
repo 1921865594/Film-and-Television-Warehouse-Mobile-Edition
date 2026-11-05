@@ -1,0 +1,320 @@
+package com.github.tvbox.osc.ui.fragment;
+
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+
+import com.chad.library.adapter.base.BaseQuickAdapter;
+import com.github.tvbox.osc.R;
+import com.github.tvbox.osc.base.BaseLazyFragment;
+import com.github.tvbox.osc.bean.Movie;
+import com.github.tvbox.osc.bean.VodInfo;
+import com.github.tvbox.osc.cache.RoomDataManger;
+import com.github.tvbox.osc.ui.activity.DetailActivity;
+import com.github.tvbox.osc.ui.activity.FastSearchActivity;
+import com.github.tvbox.osc.ui.activity.HomeActivity;
+import com.github.tvbox.osc.ui.activity.SearchActivity;
+import com.github.tvbox.osc.ui.adapter.GridAdapter;
+import com.github.tvbox.osc.ui.widget.GridSpacingItemDecoration;
+import com.github.tvbox.osc.ui.widget.SmoothTopScroller;
+import com.github.tvbox.osc.util.FastClickCheckUtil;
+import com.github.tvbox.osc.util.HawkConfig;
+import com.github.tvbox.osc.util.ImgUtil;
+import com.github.tvbox.osc.viewmodel.SourceViewModel;
+import com.orhanobut.hawk.Hawk;
+
+import org.json.JSONObject;
+
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.lang.ref.WeakReference;
+
+/**
+ * 首页第 0 页「热门推荐」。
+ *
+ * <p>数据来自首页接口返回的推荐列表（{@code AbsSortXml.videoList}），当「首页推荐」被设置为
+ * 「历史记录」时改读本地播放记录。列表按批追加（首批 12 条），滑到底再补下一批，
+ * 避免一进首页就把几十张海报一次性丢给 Glide。</p>
+ */
+public class HotRecommendFragment extends BaseLazyFragment {
+
+    private static final int PAGE_SIZE = 12;
+
+    /** 首页把推荐数据放在这里交给本 Fragment（Fragment 参数不适合塞大列表） */
+    private static List<Movie.Video> pendingData;
+    private static WeakReference<HotRecommendFragment> activeFragment = new WeakReference<>(null);
+
+    public static void setData(List<Movie.Video> list) {
+        pendingData = list == null ? new ArrayList<Movie.Video>() : new ArrayList<>(list);
+        HotRecommendFragment active = activeFragment.get();
+        if (active != null && active.gridAdapter != null) {
+            active.loadData();
+            active.finishPullRefresh();
+        }
+    }
+
+    public static HotRecommendFragment newInstance() {
+        return new HotRecommendFragment();
+    }
+
+    private RecyclerView mGridView;
+    private SwipeRefreshLayout swipeRefreshLayout;
+    private View tvEmpty;
+    private GridAdapter gridAdapter;
+    private SourceViewModel sourceViewModel;
+    private ImgUtil.Style style;
+
+    private final List<Movie.Video> allData = new ArrayList<>();
+    private int shown = 0;
+    private final Handler refreshHandler = new Handler(Looper.getMainLooper());
+    private final Runnable refreshTimeout = new Runnable() {
+        @Override public void run() {
+            finishPullRefresh();
+        }
+    };
+
+    @Override
+    protected int getLayoutResID() {
+        return R.layout.fragment_hot_recommend;
+    }
+
+    /** 和分类页一样：被 ViewPager detach 时释放视图树，避免海报 bitmap 常驻 */
+    @Override
+    protected boolean isKeepViewOnDestroy() {
+        return false;
+    }
+
+    @Override
+    protected void onFragmentViewDestroyed() {
+        HotRecommendFragment active = activeFragment.get();
+        if (active == this) activeFragment.clear();
+        refreshHandler.removeCallbacks(refreshTimeout);
+        mGridView = null;
+        swipeRefreshLayout = null;
+        tvEmpty = null;
+        gridAdapter = null;
+    }
+
+    @Override
+    protected void onFragmentResume() {
+        super.onFragmentResume();
+        if (mGridView == null && rootView != null) {
+            init();
+        }
+    }
+
+    @Override
+    protected void init() {
+        mGridView = findViewById(R.id.hotGrid);
+        swipeRefreshLayout = findViewById(R.id.hotSwipeRefresh);
+        tvEmpty = findViewById(R.id.tvHotEmpty);
+        if (mGridView == null) return;
+
+        View emptyAction = findViewById(R.id.tvHotEmptyAction);
+        if (emptyAction != null) {
+            emptyAction.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    FastClickCheckUtil.check(v);
+                    if (getActivity() instanceof HomeActivity) {
+                        ((HomeActivity) getActivity()).onHomeEmptyAction();
+                    }
+                }
+            });
+        }
+
+        mGridView.setHasFixedSize(true);
+        mGridView.setItemViewCacheSize(8);
+        mGridView.setItemAnimator(null);
+        mGridView.getRecycledViewPool().setMaxRecycledViews(0, 12);
+        style = ImgUtil.initStyle();
+        int spanCount = isBaseOnWidth() ? 3 : 4;
+        if (style != null) {
+            spanCount = ImgUtil.spanCountByStyle(style, spanCount);
+        }
+        if (spanCount <= 1) {
+            mGridView.setLayoutManager(new LinearLayoutManager(mContext, LinearLayoutManager.VERTICAL, false));
+        } else {
+            mGridView.setLayoutManager(new GridLayoutManager(mContext, spanCount));
+        }
+        // 和分类页用同一套间距：以前这里没加，落地页是 0dp，两页呼吸感不一致
+        mGridView.addItemDecoration(new GridSpacingItemDecoration((int) getResources().getDimension(R.dimen.vs_8)));
+
+        gridAdapter = new GridAdapter(false, style);
+        activeFragment = new WeakReference<>(this);
+        mGridView.setAdapter(gridAdapter);
+        initPullRefresh();
+        gridAdapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(BaseQuickAdapter adapter, View view, int position) {
+                FastClickCheckUtil.check(view);
+                if (position < 0 || position >= gridAdapter.getData().size()) return;
+                openVideo(gridAdapter.getData().get(position));
+            }
+        });
+        mGridView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                if (dy <= 0) return;
+                if (shown >= allData.size()) return;
+                RecyclerView.LayoutManager lm = recyclerView.getLayoutManager();
+                int last = 0;
+                if (lm instanceof GridLayoutManager) {
+                    last = ((GridLayoutManager) lm).findLastVisibleItemPosition();
+                } else if (lm instanceof LinearLayoutManager) {
+                    last = ((LinearLayoutManager) lm).findLastVisibleItemPosition();
+                }
+                if (last >= gridAdapter.getItemCount() - 6) {
+                    appendBatch();
+                }
+            }
+        });
+
+        initViewModel();
+        loadData();
+    }
+
+    /** 使用 AndroidX SwipeRefreshLayout 处理下拉手势，避免 RecyclerView 子项抢占事件。 */
+    private void initPullRefresh() {
+        if (swipeRefreshLayout == null) return;
+        swipeRefreshLayout.setColorSchemeResources(R.color.ui_accent);
+        // The direct SwipeRefreshLayout child is a FrameLayout (it also hosts the empty state),
+        // so explicitly delegate scroll-position checks to the actual RecyclerView.
+        swipeRefreshLayout.setOnChildScrollUpCallback(new SwipeRefreshLayout.OnChildScrollUpCallback() {
+            @Override public boolean canChildScrollUp(SwipeRefreshLayout parent, View child) {
+                return mGridView != null && mGridView.canScrollVertically(-1);
+            }
+        });
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override public void onRefresh() {
+                refreshHandler.removeCallbacks(refreshTimeout);
+                // 避免请求失败或数据源无响应时刷新动画一直转动。
+                refreshHandler.postDelayed(refreshTimeout, 20000L);
+                if (getActivity() instanceof HomeActivity) {
+                    ((HomeActivity) getActivity()).refreshCurrentHomePage();
+                } else {
+                    finishPullRefresh();
+                }
+            }
+        });
+    }
+
+    private void finishPullRefresh() {
+        refreshHandler.removeCallbacks(refreshTimeout);
+        if (swipeRefreshLayout != null) {
+            swipeRefreshLayout.setRefreshing(false);
+        }
+    }
+
+    private void initViewModel() {
+        if (sourceViewModel != null) return;
+        sourceViewModel = new ViewModelProvider(this).get(SourceViewModel.class);
+        sourceViewModel.actionResult.observe(this, new Observer<JSONObject>() {
+            @Override
+            public void onChanged(JSONObject jsonObject) {
+                if (jsonObject == null) return;
+                String msg = jsonObject.optString("msg");
+                if (!msg.isEmpty() && getContext() != null) {
+                    Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private void loadData() {
+        allData.clear();
+        shown = 0;
+        if (gridAdapter != null) gridAdapter.setNewData(new ArrayList<Movie.Video>());
+        List<Movie.Video> list = resolveData();
+        if (list != null && !list.isEmpty()) {
+            allData.addAll(list);
+        }
+        appendBatch();
+        updateEmpty();
+    }
+
+    private List<Movie.Video> resolveData() {
+        if (Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC) == 2) {
+            List<VodInfo> records = RoomDataManger.getAllVodRecord(30);
+            List<Movie.Video> list = new ArrayList<>();
+            if (records != null) {
+                for (VodInfo info : records) {
+                    if (info == null) continue;
+                    Movie.Video video = new Movie.Video();
+                    video.id = info.id;
+                    video.sourceKey = info.sourceKey;
+                    video.name = info.name;
+                    video.pic = info.pic;
+                    if (info.playNote != null && !info.playNote.isEmpty()) {
+                        video.note = "上次看到" + info.playNote;
+                    }
+                    list.add(video);
+                }
+            }
+            return list;
+        }
+        return pendingData == null ? new ArrayList<Movie.Video>() : pendingData;
+    }
+
+    /** 追加一批，首批 12 条，后续每次再补 12 条 */
+    private void appendBatch() {
+        if (gridAdapter == null) return;
+        if (shown >= allData.size()) return;
+        int end = Math.min(shown + PAGE_SIZE, allData.size());
+        List<Movie.Video> batch = new ArrayList<>(allData.subList(shown, end));
+        shown = end;
+        gridAdapter.addData(batch);
+        updateEmpty();
+    }
+
+    private void updateEmpty() {
+        if (tvEmpty == null) return;
+        tvEmpty.setVisibility(gridAdapter == null || gridAdapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
+    }
+
+    private void openVideo(Movie.Video video) {
+        if (video == null) return;
+        if (video.action != null && sourceViewModel != null) {
+            sourceViewModel.action(video.sourceKey, video.action);
+            return;
+        }
+        Bundle bundle = new Bundle();
+        bundle.putString("id", video.id);
+        bundle.putString("sourceKey", video.sourceKey);
+        bundle.putString("title", video.name);
+        bundle.putString("picture", video.pic);
+        if (video.id != null && video.id.startsWith("msearch:")) {
+            if (Hawk.get(HawkConfig.FAST_SEARCH_MODE, true)) {
+                jumpActivity(FastSearchActivity.class, bundle);
+            } else {
+                jumpActivity(SearchActivity.class, bundle);
+            }
+            return;
+        }
+        jumpActivity(DetailActivity.class, bundle);
+    }
+
+    /** 供 HomeActivity 返回键使用：已上滑时平滑回到顶部并消费事件 */
+    public boolean scrollToTop() {
+        return SmoothTopScroller.scrollToTop(mGridView);
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "HotRecommendFragment";
+    }
+}
