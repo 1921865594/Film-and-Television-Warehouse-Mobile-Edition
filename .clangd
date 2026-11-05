@@ -1,4 +1,0 @@
-CompileFlags:
-  Add:
-    - "-I/storage/emulated/0/AndroidCSProjects/MBox"
-  CompilationDatabase: "/storage/emulated/0/AndroidCSProjects/MBox"
