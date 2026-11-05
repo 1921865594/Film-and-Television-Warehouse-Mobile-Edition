@@ -11,9 +11,12 @@
   <img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Android" />
   <img src="https://img.shields.io/badge/ABI-arm64--v8a-lightgrey.svg" alt="arm64-v8a" />
 </p>
+
 ### 界面
-![首页](https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E6%88%91%E7%9A%84%E9%A1%B5%E9%9D%A2.png)
-![我的页面](https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E9%A6%96%E9%A1%B5.png)
+![赞赏](https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E6%88%91%E7%9A%84%E9%A1%B5%E9%9D%A2.png)
+![赞赏](https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E9%A6%96%E9%A1%B5.png)
+
+
 
 **默认中文说明。** [English](#english)
 
@@ -295,6 +298,9 @@ MBox/
 6. **第三方接口存在变动风险。** 豆瓣热播、用户配置的数据源、解析接口、网盘登录站点等均依赖外部服务，其接口、访问限制或服务状态变化可能影响相关功能。
 7. **Release 签名需自行配置。** 当前 Release 构建使用 Debug 签名配置，正式发布前必须替换。
 8. **构建尚未在此处执行验证。** 本 README 的环境与任务名称来自本次源码配置检查；实际构建仍取决于本机 Android SDK、网络仓库可用性和所用 IDE / 构建环境。
+
+### 赞赏
+![赞赏](https://github.com/1921865594/Lemon-IPTV-v2/blob/main/mmexport1733804547365.png)
 
 ## 开源协议与致谢
 
