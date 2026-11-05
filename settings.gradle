@@ -1,0 +1,5 @@
+rootProject.name = "影视仓"
+include ':app'
+include ':player'
+include ':quickjs'
+// Current build is Java-only; Python/Chaquopy sources are excluded.

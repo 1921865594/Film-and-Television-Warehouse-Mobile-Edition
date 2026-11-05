@@ -1,0 +1,84 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+        maven { url "https://maven.aliyun.com/repository/public" }
+        maven { url "https://maven.aliyun.com/repository/releases" }
+        maven { url "https://storage.googleapis.com/r8-releases/raw" }
+        maven {
+            url "http://4thline.org/m2"
+            allowInsecureProtocol = true
+        }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:9.5.0'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url "http://4thline.org/m2"
+            allowInsecureProtocol = true
+        }
+        maven { url "https://jitpack.io" }
+        maven { url "https://maven.aliyun.com/repository/public" }
+        maven { url "https://maven.aliyun.com/repository/releases" }
+        gradlePluginPortal()
+    }
+}
+
+// ACS IDE projects are often re-imported into the same shared-storage folder.
+// Remove every module's generated intermediates as well as the root build folder;
+// otherwise a partially-written packaged_res/values/values.xml can survive a
+// project refresh and fail during ParseLibraryResourcesTask.
+tasks.register("clean", Delete) {
+    delete rootProject.layout.buildDirectory
+    subprojects.each { module ->
+        delete module.layout.buildDirectory
+    }
+}
+
+// Diagnostic task for the generated resource file involved in the current
+// ACS IDE failure. It preserves a copy under build/diagnostics so it can be
+// inspected without editing source resources.
+tasks.register("diagnoseJavaDebugValuesXml") {
+    doLast {
+        def generated = file("app/build/intermediates/packaged_res/javaDebug/packageJavaDebugResources/values/values.xml")
+        if (!generated.exists()) {
+            throw new GradleException("Generated values.xml not found. Run :app:packageJavaDebugResources first.")
+        }
+        def reportDir = file("build/diagnostics")
+        reportDir.mkdirs()
+        def copy = new File(reportDir, "javaDebug-values.xml")
+        copy.bytes = generated.bytes
+        println("Generated values.xml: ${generated.absolutePath}")
+        println("Size: ${generated.length()} bytes; lines: ${generated.readLines('UTF-8').size()}")
+        println("Diagnostic copy: ${copy.absolutePath}")
+        try {
+            def factory = javax.xml.parsers.DocumentBuilderFactory.newInstance()
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false)
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+            factory.newDocumentBuilder().parse(generated)
+            println("XML validation: PASS")
+        } catch (Exception ex) {
+            println("XML validation: FAIL - ${ex.message}")
+            def lines = generated.readLines("UTF-8")
+            def from = Math.max(0, lines.size() - 35)
+            println("--- Last ${lines.size() - from} lines of generated values.xml ---")
+            for (int i = from; i < lines.size(); i++) {
+                println(String.format("%4d | %s", i + 1, lines[i]))
+            }
+            throw new GradleException("Generated merged values.xml is malformed. Copy saved to ${copy.absolutePath}", ex)
+        }
+    }
+}
