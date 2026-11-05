@@ -11,6 +11,9 @@
   <img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Android" />
   <img src="https://img.shields.io/badge/ABI-arm64--v8a-lightgrey.svg" alt="arm64-v8a" />
 </p>
+### 界面
+(https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E6%88%91%E7%9A%84%E9%A1%B5%E9%9D%A2.png)
+(https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E9%A6%96%E9%A1%B5.png)
 
 **默认中文说明。** [English](#english)
 
