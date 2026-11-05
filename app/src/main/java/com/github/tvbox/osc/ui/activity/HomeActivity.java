@@ -1,0 +1,1282 @@
+package com.github.tvbox.osc.ui.activity;
+
+import android.Manifest;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.drawable.Drawable;
+import android.os.Bundle;
+import android.os.Handler;
+import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager.widget.ViewPager;
+
+import com.github.tvbox.osc.R;
+import com.github.tvbox.osc.api.ApiConfig;
+import com.github.tvbox.osc.base.BaseActivity;
+import com.github.tvbox.osc.base.BaseLazyFragment;
+import com.github.tvbox.osc.bean.AbsSortXml;
+import com.github.tvbox.osc.bean.Movie;
+import com.github.tvbox.osc.bean.MovieSort;
+import com.github.tvbox.osc.bean.SourceBean;
+import com.github.tvbox.osc.bean.VodInfo;
+import com.github.tvbox.osc.cache.RoomDataManger;
+import com.github.tvbox.osc.callback.HomeSkeletonCallback;
+import com.github.tvbox.osc.event.RefreshEvent;
+import com.github.tvbox.osc.server.ControlManager;
+import com.github.tvbox.osc.ui.adapter.HomePageAdapter;
+import com.github.tvbox.osc.ui.activity.ApiSettingActivity;
+import com.github.tvbox.osc.ui.activity.SearchActivity;
+import com.github.tvbox.osc.ui.adapter.SortAdapter;
+import com.github.tvbox.osc.ui.dialog.TipDialog;
+import com.github.tvbox.osc.ui.fragment.ShortDramaFragment;
+import com.github.tvbox.osc.ui.fragment.GridFragment;
+import com.github.tvbox.osc.ui.fragment.HotRecommendFragment;
+import com.github.tvbox.osc.ui.fragment.UserFragment;
+import com.github.tvbox.osc.ui.tv.widget.DefaultTransformer;
+import com.github.tvbox.osc.ui.tv.widget.FixedSpeedScroller;
+import com.github.tvbox.osc.ui.widget.GlassIndicatorView;
+import com.github.tvbox.osc.ui.widget.LiquidTabBar;
+import com.github.tvbox.osc.ui.widget.SourceSwitchPopup;
+import com.github.tvbox.osc.util.AppManager;
+import com.github.tvbox.osc.util.DefaultConfig;
+import com.github.tvbox.osc.util.FastClickCheckUtil;
+import com.github.tvbox.osc.util.FileUtils;
+import com.github.tvbox.osc.util.HawkConfig;
+import com.github.tvbox.osc.util.HomeTabConfig;
+import com.github.tvbox.osc.util.LOG;
+import com.github.tvbox.osc.util.MD5;
+import com.github.tvbox.osc.viewmodel.SourceViewModel;
+import com.google.android.material.tabs.TabLayout;
+import com.orhanobut.hawk.Hawk;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+public class HomeActivity extends BaseActivity {
+    private LinearLayout topLayout;
+    private View searchBar;
+    private TextView tvMenu;
+    private TabLayout mTabLayout;
+    private ViewPager mViewPager;
+    private View homeContent;
+    private View flFragment;
+    private ImageView ivNavHome, ivNavDrama, ivNavLive, ivNavMine;
+    private TextView tvNavHome, tvNavDrama, tvNavLive, tvNavMine;
+    /** 底部导航里那枚会滑动的玻璃指示器 */
+    private GlassIndicatorView navIndicator;
+    /** 四个 Tab 的容器，指示器按它的子 View 位置算坐标 */
+    private ViewGroup navItems;
+    private LiquidTabBar navBar;
+    /** 拖拽开始时的选中项与其指示器边界，拖动过程中以它为基准做偏移 */
+    private int dragBaseIndex;
+    private float dragBaseLeft, dragBaseRight;
+    private int currentBottomTab = 0;
+    private List<Movie.Video> lastRecList;
+    private SourceViewModel sourceViewModel;
+    private SortAdapter sortAdapter;
+    private HomePageAdapter pageAdapter;
+    /** 首页实际渲染的分类页（不含最左侧「热门推荐」），顺序即页序 - 1 */
+    private final List<MovieSort.SortData> pageSorts = new ArrayList<>();
+    private AbsSortXml lastAbsXml;
+    private int currentSelected = 0;
+    private SourceBean previousHomeSource;
+    private String loadingSourceKey;
+    private String previousHomeName;
+    private boolean homeSortLoading = false;
+    private final Handler mHandler = new Handler();
+    private long mExitTime = 0;
+    private boolean eventBusRegistered = false;
+    /** 当前点播配置是线路集合时，必须先完成线路选择才能正常加载首页。 */
+    private boolean waitingForApiLineSelection = false;
+    /** 记录上一次渲染首页热门推荐时使用的模式，便于从设置页返回后立即刷新。 */
+    private int lastHomeRecMode = -1;
+
+    @Override
+    protected int getLayoutResID() {
+        return R.layout.activity_home;
+    }
+
+    @Override
+    protected boolean shouldRefreshAutoSize() {
+        return true;
+    }
+
+    /** 首页用海报骨架代替通用转圈，见 HomeSkeletonCallback */
+    @Override
+    protected void showLoading() {
+        showLoading(HomeSkeletonCallback.class);
+    }
+
+    @Override
+    protected boolean isLoading() {
+        return super.isLoading() || isShowingCallback(HomeSkeletonCallback.class);
+    }
+
+    boolean useCacheConfig = false;
+
+    @Override
+    protected void init() {
+        EventBus.getDefault().register(this);
+        eventBusRegistered = true;
+        ControlManager.get().startServer();
+        initView();
+        initViewModel();
+        useCacheConfig = false;
+        Intent intent = getIntent();
+        if (intent != null && intent.getExtras() != null) {
+            Bundle bundle = intent.getExtras();
+            useCacheConfig = bundle.getBoolean("useCache", false);
+        }
+        initData();
+    }
+
+    private void initView() {
+        this.topLayout = findViewById(R.id.topLayout);
+        this.tvMenu = findViewById(R.id.tvMenu);
+        this.searchBar = findViewById(R.id.searchBar);
+        this.mTabLayout = findViewById(R.id.mTabLayout);
+        this.mViewPager = findViewById(R.id.mViewPager);
+        this.sortAdapter = new SortAdapter();
+
+        // 假输入框：点击进搜索页。真键盘留给搜索页，首页不抢焦点
+        searchBar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                startActivity(new Intent(HomeActivity.this, SearchActivity.class));
+            }
+        });
+        // 右侧胶囊 = 当前数据源，点开切换
+        tvMenu.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                showSiteSwitch();
+            }
+        });
+        // 数据源还没加载完时先给个占位，别让顶栏挂一个空胶囊
+        SourceBean initialSource = ApiConfig.get().getHomeSourceBean();
+        setSourceChipText(initialSource != null && initialSource.getName() != null
+                ? initialSource.getName()
+                : getString(R.string.source_fallback));
+
+        this.mTabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                selectPage(tab.getPosition());
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {
+            }
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+                // 再次点击当前页签 = 平滑回到该页顶部
+                scrollPageToTop(tab.getPosition());
+            }
+        });
+
+        // 左右滑动切换页面时，让顶部页签跟着走
+        this.mViewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                if (mTabLayout == null) return;
+                TabLayout.Tab tab = mTabLayout.getTabAt(position);
+                if (tab != null && !tab.isSelected()) {
+                    tab.select();
+                }
+            }
+        });
+
+        initBottomNav();
+        // 加载/空占位必须挂在内容区：挂在顶栏（52dp）上的话，加载时整条顶栏会被
+        // 一个转圈替掉，而真正空着的海报区反而没有任何反馈
+        setLoadSir(this.homeContent);
+    }
+
+    private void selectPage(int position) {
+        if (pageAdapter == null || position < 0 || position >= pageAdapter.getCount()) return;
+        if (currentSelected == position) return;
+        currentSelected = position;
+        mViewPager.setCurrentItem(position, false);
+        BaseLazyFragment baseLazyFragment = pageAdapter.getFragment(position);
+        if (baseLazyFragment instanceof GridFragment && ((GridFragment) baseLazyFragment).shouldReloadOnSelect()) {
+            ((GridFragment) baseLazyFragment).forceRefresh();
+        }
+    }
+
+    private void setupTabs() {
+        if (mTabLayout == null || sortAdapter == null) return;
+        mTabLayout.removeAllTabs();
+        // 第 0 页固定是「热门推荐」，其后按用户配置的分类顺序排列
+        mTabLayout.addTab(mTabLayout.newTab().setText(HomeTabConfig.HOT_NAME));
+        for (MovieSort.SortData sortData : getVisibleSortData()) {
+            mTabLayout.addTab(mTabLayout.newTab().setText(sortData.name));
+        }
+    }
+
+    /** 首页要显示的分类（已按用户配置过滤 + 排序），不含「热门推荐」 */
+    private List<MovieSort.SortData> getVisibleSortData() {
+        return HomeTabConfig.visibleSortData(sortAdapter == null ? null : sortAdapter.getData());
+    }
+
+    private void initBottomNav() {
+        this.homeContent = findViewById(R.id.homeContent);
+        this.flFragment = findViewById(R.id.flFragment);
+        this.ivNavHome = findViewById(R.id.ivNavHome);
+        this.ivNavDrama = findViewById(R.id.ivNavDrama);
+        this.ivNavLive = findViewById(R.id.ivNavLive);
+        this.ivNavMine = findViewById(R.id.ivNavMine);
+        this.tvNavHome = findViewById(R.id.tvNavHome);
+        this.tvNavDrama = findViewById(R.id.tvNavDrama);
+        this.tvNavLive = findViewById(R.id.tvNavLive);
+        this.tvNavMine = findViewById(R.id.tvNavMine);
+        this.navIndicator = findViewById(R.id.navIndicator);
+        this.navItems = findViewById(R.id.navItems);
+        this.navBar = findViewById(R.id.bottomNav);
+
+        applyBottomNavVisibility();
+
+        if (navIndicator != null) {
+            navIndicator.setOrientation(GlassIndicatorView.HORIZONTAL);
+            // 胶囊高 64dp，上下各缩 6dp → 52dp，四周留出玻璃边缘的呼吸空间
+            navIndicator.setCrossInset(getResources().getDimensionPixelSize(R.dimen.vs_6));
+        }
+        if (navBar != null) {
+            navBar.setOnDragListener(new LiquidTabBar.OnDragListener() {
+                @Override
+                public void onDragStart() {
+                    beginNavDrag();
+                }
+
+                @Override
+                public void onDrag(float dx) {
+                    moveNavDrag(dx);
+                }
+
+                @Override
+                public void onDragEnd(float dx) {
+                    endNavDrag(dx);
+                }
+            });
+        }
+        if (navItems != null) {
+            // 首次布局 / 旋转 / 字号变化后尺寸会变，指示器必须重新对位。
+            // 只有尺寸真的变了才处理，避免普通重绘把正在跑的弹簧打断。
+            navItems.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                           int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                        moveNavIndicator(currentBottomTab, false);
+                    }
+                }
+            });
+        }
+
+        findViewById(R.id.navHome).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                selectBottomTab(0);
+            }
+        });
+        findViewById(R.id.navDrama).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                selectBottomTab(1);
+            }
+        });
+        findViewById(R.id.navLive).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                selectBottomTab(2);
+            }
+        });
+        findViewById(R.id.navMine).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FastClickCheckUtil.check(v);
+                selectBottomTab(3);
+            }
+        });
+        updateBottomNav(0);
+    }
+
+    /**
+     * 底部四栏切换：0 首页 / 1 短剧 / 2 直播 / 3 我的
+     */
+    private void selectBottomTab(int tab) {
+        if (tab == 2) {
+            // 直播：直接进入直播播放页
+            startActivity(new Intent(HomeActivity.this, LivePlayActivity.class));
+            return;
+        }
+        // 已经在首页时再点「首页」= 平滑回到当前分类页顶部
+        boolean alreadyHome = tab == 0 && currentBottomTab == 0
+                && homeContent != null && homeContent.getVisibility() == View.VISIBLE;
+        currentBottomTab = tab;
+        updateBottomNav(tab);
+        if (tab == 0) {
+            showHomeContent();
+            if (alreadyHome) {
+                scrollPageToTop(currentSelected);
+            }
+        } else if (tab == 1) {
+            // 短剧页自己去读配置里的短剧源，不需要首页把分类传进来
+            showSubFragment(ShortDramaFragment.newInstance());
+        } else if (tab == 3) {
+            showSubFragment(UserFragment.newInstance(lastRecList));
+        }
+    }
+
+    /**
+     * 首页当前分类页的下拉刷新入口。
+     * 热门推荐根据当前推荐模式刷新数据；普通分类只重载当前分类，避免误刷新其它标签。
+     */
+    public void refreshCurrentHomePage() {
+        if (isActivityUnavailable() || currentBottomTab != 0 || pageAdapter == null) return;
+        if (currentSelected <= 0) {
+            int mode = Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC);
+            if (mode == 0 && sourceViewModel != null) {
+                sourceViewModel.getDoubanHotList(new SourceViewModel.DoubanHotCallback() {
+                    @Override
+                    public void done(List<Movie.Video> videos) {
+                        if (isActivityUnavailable()) return;
+                        if (Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC) == 0) {
+                            HotRecommendFragment.setData(videos);
+                        }
+                    }
+                });
+            } else if (mode == 1) {
+                // 站点推荐来自 homeContent 响应，刷新首页分类数据可同步更新推荐列表。
+                refreshHomeSort();
+            } else {
+                // 历史模式是本地数据，不必请求网络。
+                HotRecommendFragment.setData(buildHistoryList());
+            }
+            return;
+        }
+        BaseLazyFragment fragment = pageAdapter.getFragment(currentSelected);
+        if (fragment instanceof GridFragment) {
+            ((GridFragment) fragment).forceRefresh();
+        }
+    }
+
+    /** 把首页第 position 页平滑滚回顶部 */
+    private boolean scrollPageToTop(int position) {
+        if (pageAdapter == null) return false;
+        BaseLazyFragment fragment = pageAdapter.getFragment(position);
+        if (fragment instanceof GridFragment) {
+            return ((GridFragment) fragment).smoothScrollToTop();
+        }
+        if (fragment instanceof HotRecommendFragment) {
+            return ((HotRecommendFragment) fragment).scrollToTop();
+        }
+        return false;
+    }
+
+    private void showHomeContent() {
+        if (flFragment != null) {
+            flFragment.setVisibility(View.GONE);
+        }
+        if (homeContent != null) {
+            homeContent.setVisibility(View.VISIBLE);
+        }
+        Fragment existing = getSupportFragmentManager().findFragmentById(R.id.flFragment);
+        if (existing != null) {
+            getSupportFragmentManager().beginTransaction().remove(existing).commitAllowingStateLoss();
+        }
+    }
+
+    private void showSubFragment(Fragment fragment) {
+        if (homeContent != null) {
+            homeContent.setVisibility(View.GONE);
+        }
+        if (flFragment != null) {
+            flFragment.setVisibility(View.VISIBLE);
+        }
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.flFragment, fragment)
+                .commitAllowingStateLoss();
+    }
+
+    private void updateBottomNav(int selected) {
+        // 用语义色：日间是深青 + 半透明黑，夜间是亮青 + 半透明白，否则日间模式下图标会白到看不见
+        int on = getResources().getColor(R.color.ui_accent);
+        int off = getResources().getColor(R.color.ui_text_secondary);
+        applyNavState(ivNavHome, tvNavHome, selected == 0, on, off);
+        applyNavState(ivNavDrama, tvNavDrama, selected == 1, on, off);
+        applyNavState(ivNavLive, tvNavLive, selected == 2, on, off);
+        applyNavState(ivNavMine, tvNavMine, selected == 3, on, off);
+        moveNavIndicator(selected, true);
+        bounceNavIcon(selected);
+    }
+
+    /**
+     * 把玻璃指示器移到第 index 个 Tab 后面。
+     *
+     * <p>animate=false 只用于布局阶段（首次显示、旋转、字号变化）——
+     * 那时候用户没有"点击"这个动作，指示器应该本来就在那儿，滑过去反而像卡了一下。
+     */
+    private void moveNavIndicator(int index, boolean animate) {
+        if (navIndicator == null || navItems == null) return;
+        if (index < 0 || index >= navItems.getChildCount()) return;
+        View tab = navItems.getChildAt(index);
+        if (tab == null) return;
+        int inset = getResources().getDimensionPixelSize(R.dimen.vs_4);
+        navIndicator.setSpan(tab.getLeft() + inset, tab.getRight() - inset, animate);
+    }
+
+    /**
+     * 选中时图标轻轻"压一下再弹回来"。
+     *
+     * <p>这是第二层反馈：指示器告诉用户"选中的是这个位置"，
+     * 图标回弹告诉用户"我确实点到了"。只有颜色变化的话，
+     * 快速连点时用户分不清哪一次点生效了。
+     */
+    private void bounceNavIcon(int index) {
+        if (navItems == null || navItems.getWidth() == 0) return;
+        ImageView icon = index == 0 ? ivNavHome
+                : index == 1 ? ivNavDrama
+                : index == 2 ? ivNavLive
+                : ivNavMine;
+        if (icon == null) return;
+        icon.animate().cancel();
+        icon.setScaleX(0.86f);
+        icon.setScaleY(0.86f);
+        icon.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(280)
+                .setInterpolator(new OvershootInterpolator(1.8f))
+                .start();
+    }
+
+    /** 开始拖拽：记住当前选中 Tab 的指示器边界，后面所有位移都相对它算 */
+    private void beginNavDrag() {
+        if (navItems == null || navIndicator == null) return;
+        dragBaseIndex = currentBottomTab;
+        View tab = navItems.getChildAt(dragBaseIndex);
+        if (tab == null) {
+            dragBaseLeft = 0;
+            dragBaseRight = 0;
+            return;
+        }
+        int inset = getResources().getDimensionPixelSize(R.dimen.vs_4);
+        dragBaseLeft = tab.getLeft() + inset;
+        dragBaseRight = tab.getRight() - inset;
+    }
+
+    /**
+     * 拖动中：把弹簧的目标位置直接设成"手指所在处"。
+     *
+     * <p>弹簧每帧都在追一个新目标，永远追不上，于是视觉上就是透镜被手指拽着、
+     * 但比手指慢半拍 —— 这就是要求里说的"跟随手指但带有弹簧滞后"。
+     * 不用手动做插值，也不需要额外的阻尼计算。
+     */
+    private void moveNavDrag(float dx) {
+        if (navIndicator == null || navItems == null) return;
+        int width = navItems.getWidth();
+        if (width == 0) return;
+        float left = clamp(dragBaseLeft + dx, 0f, width);
+        float right = clamp(dragBaseRight + dx, 0f, width);
+        if (right - left < 1f) return;
+        navIndicator.setSpan(left, right, true);
+    }
+
+    /** 松手：落点最近的那个 Tab 被选中，指示器弹过去 */
+    private void endNavDrag(float dx) {
+        if (navIndicator == null || navItems == null || navItems.getChildCount() == 0) return;
+        float center = (dragBaseLeft + dragBaseRight) / 2f + dx;
+        int best = currentBottomTab;
+        float bestDistance = Float.MAX_VALUE;
+        for (int i = 0; i < navItems.getChildCount(); i++) {
+            View tab = navItems.getChildAt(i);
+            if (tab == null || tab.getVisibility() != View.VISIBLE) continue;
+            float distance = Math.abs((tab.getLeft() + tab.getRight()) / 2f - center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = i;
+            }
+        }
+        if (best == 2) {
+            // 直播不驻留在本页（会直接开播放页），指示器要弹回原来的位置
+            moveNavIndicator(currentBottomTab, true);
+            selectBottomTab(2);
+            return;
+        }
+        if (best != currentBottomTab) {
+            selectBottomTab(best);
+        } else {
+            moveNavIndicator(best, true);
+        }
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return value < min ? min : (value > max ? max : value);
+    }
+
+    private void applyNavState(ImageView icon, TextView label, boolean selected, int on, int off) {
+        if (icon == null || label == null) {
+            return;
+        }
+        final ImageView fIcon = icon;
+        final TextView fLabel = label;
+        final int target = selected ? on : off;
+        final int current = label.getCurrentTextColor();
+        // 打断上一次未完成的过渡，保证再次切换时从「当前呈现值」平滑重定向（Apple 式可打断动画）
+        Object prev = label.getTag();
+        if (prev instanceof ValueAnimator) {
+            ((ValueAnimator) prev).cancel();
+        }
+        if (current == target) {
+            fIcon.setColorFilter(target);
+            fLabel.setTextColor(target);
+            fLabel.setTag(null);
+            return;
+        }
+        ValueAnimator animator = ValueAnimator.ofObject(new ArgbEvaluator(), current, target);
+        animator.setDuration(180);
+        animator.setInterpolator(new DecelerateInterpolator());
+        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                int color = (Integer) animation.getAnimatedValue();
+                fIcon.setColorFilter(color);
+                fLabel.setTextColor(color);
+            }
+        });
+        fLabel.setTag(animator);
+        animator.start();
+    }
+
+    /** 按「外观主题 → 首页与列表 → 首页标签」配置隐藏短剧/直播入口。 */
+    private void applyBottomNavVisibility() {
+        View drama = findViewById(R.id.navDrama);
+        View live = findViewById(R.id.navLive);
+        if (drama == null || live == null) return;
+        boolean hideDrama = Hawk.get(HawkConfig.HOME_HIDE_SHORT_DRAMA, false);
+        boolean hideLive = Hawk.get(HawkConfig.HOME_HIDE_LIVE, false);
+        drama.setVisibility(hideDrama ? View.GONE : View.VISIBLE);
+        live.setVisibility(hideLive ? View.GONE : View.VISIBLE);
+        // 若偏好变更时当前停留在即将隐藏的短剧页，自动退回首页，避免指示器落在隐藏项上。
+        if ((hideDrama && currentBottomTab == 1) || (hideLive && currentBottomTab == 2)) {
+            currentBottomTab = 0;
+            showHomeContent();
+            updateBottomNav(0);
+        }
+        if (navItems != null) {
+            navItems.requestLayout();
+            navItems.post(new Runnable() {
+                @Override
+                public void run() {
+                    moveNavIndicator(currentBottomTab, false);
+                }
+            });
+        }
+    }
+
+    private void initViewModel() {
+        sourceViewModel = new ViewModelProvider(this).get(SourceViewModel.class);
+        sourceViewModel.sortResult.observe(this, new Observer<AbsSortXml>() {
+            @Override
+            public void onChanged(AbsSortXml absXml) {
+                if (loadingSourceKey == null) {
+                    return;
+                }
+                if (absXml != null && absXml.sourceKey != null && loadingSourceKey != null && !loadingSourceKey.equals(absXml.sourceKey)) {
+                    return;
+                }
+                lastRecList = absXml != null ? absXml.videoList : null;
+                lastAbsXml = absXml;
+                SourceBean home = ApiConfig.get().getHomeSourceBean();
+                showSuccess();
+                clearHomePages();
+                List<MovieSort.SortData> newSortData;
+                if (absXml != null && absXml.classes != null && absXml.classes.sortList != null) {
+                    newSortData = DefaultConfig.adjustSort(ApiConfig.get().getHomeSourceBean().getKey(), absXml.classes.sortList, false);
+                } else {
+                    newSortData = DefaultConfig.adjustSort(ApiConfig.get().getHomeSourceBean().getKey(), new ArrayList<>(), false);
+                }
+                updateSortData(newSortData);
+                initViewPager(absXml);
+                if (home != null && home.getName() != null && !home.getName().isEmpty()) {
+                    setSourceChipText(home.getName());
+                }
+                stopSourceChipBlink();
+                homeSortLoading = false;
+                loadingSourceKey = null;
+                previousHomeName = null;
+                previousHomeSource = null;
+            }
+        });
+    }
+
+    private boolean dataInitOk = false;
+    private boolean jarInitOk = false;
+    private boolean searchSpiderWarmStarted = false;
+    private TipDialog mConfigErrorDialog;
+
+    private void initData() {
+        if (dataInitOk && jarInitOk) {
+            loadHomeSort(false);
+            if (hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                LOG.e("有");
+            } else {
+                LOG.e("无");
+            }
+            if (!useCacheConfig && Hawk.get(HawkConfig.DEFAULT_LOAD_LIVE, false)) {
+                jumpActivity(LivePlayActivity.class);
+            }
+            if (!useCacheConfig) warmSearchSpidersOnce();
+            return;
+        }
+        startSourceChipBlink();
+        showLoading();
+        if (dataInitOk && !jarInitOk) {
+            if (!ApiConfig.get().getSpider().isEmpty()) {
+                ApiConfig.get().loadJar(useCacheConfig, ApiConfig.get().getSpider(), new ApiConfig.LoadConfigCallback() {
+                    @Override
+                    public void success() {
+                        jarInitOk = true;
+                        mHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                initData();
+                            }
+                        }, 50);
+                    }
+
+                    @Override
+                    public void notice(String msg) {
+                        mHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(HomeActivity.this, msg, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void error(String msg) {
+                        jarInitOk = true;
+                        dataInitOk = true;
+                        mHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(HomeActivity.this, msg + " jar load err", Toast.LENGTH_SHORT).show();
+                                initData();
+                            }
+                        }, 50);
+                    }
+                });
+            }
+            return;
+        }
+        ApiConfig.get().loadConfig(useCacheConfig, new ApiConfig.LoadConfigCallback() {
+            @Override
+            public void notice(String msg) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(HomeActivity.this, msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void success() {
+                dataInitOk = true;
+                if (ApiConfig.get().getSpider().isEmpty()) {
+                    jarInitOk = true;
+                }
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        initData();
+                    }
+                }, 50);
+            }
+
+            @Override
+            public void error(String msg) {
+                if (ApiConfig.ERROR_API_COLLECTION_NEEDS_SELECTION.equals(msg)) {
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (isActivityUnavailable()) return;
+                            waitingForApiLineSelection = true;
+                            Toast.makeText(HomeActivity.this,
+                                    "检测到多个点播线路，请先选择线路", Toast.LENGTH_LONG).show();
+                            startActivity(new Intent(HomeActivity.this, ApiSettingActivity.class));
+                        }
+                    });
+                    return;
+                }
+                if (msg.equalsIgnoreCase("-1")) {
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            dataInitOk = true;
+                            jarInitOk = true;
+                            initData();
+                        }
+                    });
+                    return;
+                }
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isActivityUnavailable()) {
+                            return;
+                        }
+                        if (mConfigErrorDialog == null)
+                            mConfigErrorDialog = new TipDialog(HomeActivity.this, msg, "重试", "取消", new TipDialog.OnListener() {
+                                @Override
+                                public void left() {
+                                    mHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            dismissConfigErrorDialog();
+                                            initData();
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void right() {
+                                    dataInitOk = true;
+                                    jarInitOk = true;
+                                    mHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            dismissConfigErrorDialog();
+                                            initData();
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void cancel() {
+                                    dataInitOk = true;
+                                    jarInitOk = true;
+                                    mHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            dismissConfigErrorDialog();
+                                            initData();
+                                        }
+                                    });
+                                }
+                            });
+                        if (!mConfigErrorDialog.isShowing())
+                            mConfigErrorDialog.show();
+                    }
+                });
+            }
+        }, this);
+    }
+
+    private void warmSearchSpidersOnce() {
+        if (searchSpiderWarmStarted) return;
+        searchSpiderWarmStarted = true;
+        ApiConfig.get().warmSearchSpiders();
+    }
+
+    private void loadHomeSort(boolean keepCurrentContent) {
+        SourceBean home = ApiConfig.get().getHomeSourceBean();
+        homeSortLoading = keepCurrentContent;
+        if (keepCurrentContent && home != null && home.getName() != null && !home.getName().isEmpty()) {
+            previousHomeName = tvMenu.getText() == null ? null : tvMenu.getText().toString();
+            setSourceChipText(home.getName());
+        }
+        startSourceChipBlink();
+        if (home == null) {
+            loadingSourceKey = null;
+            if (!keepCurrentContent) showLoading();
+            sourceViewModel.getSort(null);
+            return;
+        }
+        loadingSourceKey = home.getKey();
+        if (!keepCurrentContent) {
+            showLoading();
+        }
+        sourceViewModel.getSort(loadingSourceKey);
+    }
+
+    private void initViewPager(AbsSortXml absXml) {
+        if (sortAdapter == null) return;
+        // 0 豆瓣热播独立请求豆瓣接口；1 站点推荐使用当前站点接口；2 使用本地历史。
+        final int homeRecMode = Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC);
+        lastHomeRecMode = homeRecMode;
+        HotRecommendFragment.setData(resolveHotList(absXml));
+        if (homeRecMode == 0 && sourceViewModel != null) {
+            sourceViewModel.getDoubanHotList(new SourceViewModel.DoubanHotCallback() {
+                @Override
+                public void done(List<Movie.Video> videos) {
+                    if (isFinishing() || isDestroyed()) return;
+                    if (Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC) == 0) {
+                        HotRecommendFragment.setData(videos);
+                    }
+                }
+            });
+        }
+
+        pageSorts.clear();
+        pageSorts.addAll(getVisibleSortData());
+        final List<MovieSort.SortData> sorts = new ArrayList<>(pageSorts);
+
+        // 懒加载：这里只给出「第几页是什么」，Fragment 实例等 ViewPager 真正需要时才创建
+        pageAdapter = new HomePageAdapter(getSupportFragmentManager(), sorts.size() + 1,
+                new HomePageAdapter.PageProvider() {
+                    @Override
+                    public BaseLazyFragment create(int position) {
+                        if (position <= 0) {
+                            return HotRecommendFragment.newInstance();
+                        }
+                        return GridFragment.newInstance(sorts.get(position - 1));
+                    }
+                });
+        try {
+            java.lang.reflect.Field field = ViewPager.class.getDeclaredField("mScroller");
+            field.setAccessible(true);
+            FixedSpeedScroller scroller = new FixedSpeedScroller(mContext, new android.view.animation.AccelerateInterpolator());
+            field.set(mViewPager, scroller);
+            scroller.setmDuration(300);
+        } catch (Exception e) {
+        }
+        mViewPager.setPageTransformer(true, new DefaultTransformer());
+        // 只保留当前页左右各一页；滑出范围的页面会被 detach，视图树和海报一起释放
+        mViewPager.setOffscreenPageLimit(1);
+        mViewPager.setAdapter(pageAdapter);
+        if (currentSelected < 0 || currentSelected >= pageAdapter.getCount()) {
+            currentSelected = 0;
+        }
+        mViewPager.setCurrentItem(currentSelected, false);
+    }
+
+    /** 「热门推荐」页的数据源：0 豆瓣热播 / 1 站点推荐走接口列表，2 走本地历史 */
+    private List<Movie.Video> resolveHotList(AbsSortXml absXml) {
+        int mode = Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC);
+        if (mode == 2) {
+            return buildHistoryList();
+        }
+        // 豆瓣模式绝不使用当前站点列表或本地观看历史作为兜底。
+        if (mode == 0) {
+            return new ArrayList<>();
+        }
+        // 站点推荐模式只展示当前站点 homeContent 提供的数据，绝不使用本地播放历史兜底。
+        // 部分标准 JSON/XML 源会先把首页推荐条目放在 list.videoList，再异步补齐详情到 videoList；
+        // 详情请求失败或站点没有 homeVideoContent 时，仍展示站点原始推荐条目。
+        List<Movie.Video> rec = absXml != null ? absXml.videoList : null;
+        if (rec == null || rec.isEmpty()) {
+            rec = absXml != null && absXml.list != null ? absXml.list.videoList : null;
+        }
+        if (rec == null || rec.isEmpty()) return new ArrayList<Movie.Video>();
+
+        ArrayList<Movie.Video> siteVideos = new ArrayList<>(rec);
+        String sourceKey = absXml.sourceKey;
+        if (TextUtils.isEmpty(sourceKey)) {
+            SourceBean homeSource = ApiConfig.get().getHomeSourceBean();
+            sourceKey = homeSource == null ? null : homeSource.getKey();
+        }
+        if (!TextUtils.isEmpty(sourceKey)) {
+            for (Movie.Video video : siteVideos) {
+                if (video != null && TextUtils.isEmpty(video.sourceKey)) {
+                    video.sourceKey = sourceKey;
+                }
+            }
+        }
+        return siteVideos;
+    }
+
+    /** 本地观看历史 → 首页卡片，仅用于用户明确选择「历史记录」模式。 */
+    private List<Movie.Video> buildHistoryList() {
+        List<VodInfo> records = RoomDataManger.getAllVodRecord(30);
+        List<Movie.Video> list = new ArrayList<>();
+        if (records != null) {
+            for (VodInfo info : records) {
+                if (info == null) continue;
+                Movie.Video video = new Movie.Video();
+                video.id = info.id;
+                video.sourceKey = info.sourceKey;
+                video.name = info.name;
+                video.pic = info.pic;
+                if (info.playNote != null && !info.playNote.isEmpty()) {
+                    video.note = "上次看到" + info.playNote;
+                }
+                list.add(video);
+            }
+        }
+        return list;
+    }
+
+    private void clearHomePages() {
+        mHandler.removeCallbacks(mDataRunnable);
+        currentSelected = 0;
+        pageSorts.clear();
+        if (pageAdapter != null) {
+            mViewPager.setAdapter(null);
+            pageAdapter.removeAll();
+            pageAdapter = null;
+        }
+    }
+
+    private void updateSortData(List<MovieSort.SortData> newSortData) {
+        if (newSortData == null) {
+            newSortData = new ArrayList<>();
+        }
+        sortSnapshot = new ArrayList<>(newSortData);
+        sortAdapter.setNewData(newSortData);
+        setupTabs();
+    }
+
+    /** 首页分类快照，供「首页标签」设置页读取（分类里带 filters，不适合走 Intent 序列化） */
+    private static List<MovieSort.SortData> sortSnapshot = new ArrayList<>();
+
+    public static List<MovieSort.SortData> getSortSnapshot() {
+        return sortSnapshot;
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    @Override
+    public void onBackPressed() {
+        if (homeSortLoading) {
+            cancelHomeSortLoading();
+            return;
+        }
+        if (isLoading()) {
+            refreshEmpty();
+            return;
+        }
+        // 分类/我的 页面：返回键先回到首页
+        if (currentBottomTab != 0) {
+            selectBottomTab(0);
+            return;
+        }
+        if (pageAdapter == null || this.currentSelected >= pageAdapter.getCount() || this.currentSelected < 0) {
+            doExit();
+            return;
+        }
+
+        BaseLazyFragment baseLazyFragment = pageAdapter.getFragment(this.currentSelected);
+        if (baseLazyFragment instanceof GridFragment) {
+            GridFragment grid = (GridFragment) baseLazyFragment;
+            if (grid.restoreView()) {
+                return;
+            } else if (this.currentSelected != 0) {
+                selectPage(0);
+            } else {
+                doExit();
+            }
+        } else if (baseLazyFragment instanceof HotRecommendFragment
+                && ((HotRecommendFragment) baseLazyFragment).scrollToTop()) {
+            // 热门推荐页已经上滑，先回到顶部
+        } else {
+            doExit();
+        }
+    }
+
+    private void doExit() {
+        if (System.currentTimeMillis() - mExitTime < 2000) {
+            AppManager.getInstance().finishAllActivity();
+            unregisterEventBus();
+            ControlManager.get().stopServer();
+            finish();
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(0);
+        } else {
+            mExitTime = System.currentTimeMillis();
+            Toast.makeText(mContext, "再按一次返回键退出应用", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        applyBottomNavVisibility();
+        if (waitingForApiLineSelection) {
+            startActivity(new Intent(HomeActivity.this, ApiSettingActivity.class));
+            return;
+        }
+        applyHomeTabChange();
+        refreshHotRecommendationModeIfChanged();
+    }
+
+    /** 从外观主题返回首页时，立即应用新的豆瓣/站点推荐/历史模式。 */
+    private void refreshHotRecommendationModeIfChanged() {
+        int mode = Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC);
+        if (lastHomeRecMode == -1 || lastHomeRecMode == mode || sourceViewModel == null) return;
+        lastHomeRecMode = mode;
+        HotRecommendFragment.setData(resolveHotList(lastAbsXml));
+        if (mode == 0) {
+            sourceViewModel.getDoubanHotList(new SourceViewModel.DoubanHotCallback() {
+                @Override
+                public void done(List<Movie.Video> videos) {
+                    if (isFinishing() || isDestroyed()) return;
+                    if (Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC) == 0) {
+                        HotRecommendFragment.setData(videos);
+                    }
+                }
+            });
+        }
+    }
+
+    /** 从「界面偏好 → 首页标签」返回后，按新配置重建页签与页面 */
+    private void applyHomeTabChange() {
+        // 首页数据还没回来时先不动，等下一次 onResume 或首页加载完成后再应用
+        if (sortAdapter == null || sortAdapter.getData().isEmpty()) return;
+        if (!HomeTabConfig.consumeChanged()) return;
+        clearHomePages();
+        setupTabs();
+        initViewPager(lastAbsXml);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    /** 数据源胶囊的文字就是站点名；只有一个站点时它不可点，别做成死按钮 */
+    private void setSourceChipText(String name) {
+        if (tvMenu == null || name == null) return;
+        tvMenu.setText(name);
+        List<SourceBean> sites = ApiConfig.get().getSwitchSourceBeanList();
+        boolean canSwitch = sites != null && sites.size() > 1;
+        tvMenu.setClickable(canSwitch);
+        applyChipChevron(canSwitch);
+    }
+
+    /** 胶囊右侧的箭头。矢量图标默认是白色，必须按语义色着色，否则浅色胶囊上等于没有 */
+    private void applyChipChevron(boolean show) {
+        if (!show) {
+            tvMenu.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0);
+            return;
+        }
+        Drawable chevron = AppCompatResources.getDrawable(this, R.drawable.ic_chevron_down);
+        if (chevron == null) return;
+        chevron = DrawableCompat.wrap(chevron).mutate();
+        DrawableCompat.setTint(chevron, ContextCompat.getColor(this, R.color.ui_muted));
+        int size = (int) getResources().getDimension(R.dimen.vs_30);
+        chevron.setBounds(0, 0, size, size);
+        tvMenu.setCompoundDrawablesRelative(null, null, chevron, null);
+    }
+
+    /** 切源期间让胶囊轻微呼吸，替代原来那个「站点名闪烁」 */
+    private void startSourceChipBlink() {
+        if (tvMenu == null) return;
+        tvMenu.clearAnimation();
+        AlphaAnimation blinkAnimation = new AlphaAnimation(0.35f, 1.0f);
+        blinkAnimation.setDuration(500);
+        blinkAnimation.setStartOffset(20);
+        blinkAnimation.setRepeatMode(Animation.REVERSE);
+        blinkAnimation.setRepeatCount(Animation.INFINITE);
+        tvMenu.startAnimation(blinkAnimation);
+    }
+
+    private void stopSourceChipBlink() {
+        if (tvMenu == null) return;
+        tvMenu.clearAnimation();
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void refresh(RefreshEvent event) {
+        if (event.type == RefreshEvent.TYPE_PUSH_URL) {
+            if (ApiConfig.get().getSource("push_agent") != null) {
+                Intent newIntent = new Intent(mContext, DetailActivity.class);
+                newIntent.putExtra("id", (String) event.obj);
+                newIntent.putExtra("sourceKey", "push_agent");
+                newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                HomeActivity.this.startActivity(newIntent);
+            }
+        } else if (event.type == RefreshEvent.TYPE_HOME_SOURCE_CHANGE) {
+            refreshHome(false);
+        }
+    }
+
+    private final Runnable mDataRunnable = new Runnable() {
+        @Override
+        public void run() {
+        }
+    };
+
+    @Override
+    protected void onDestroy() {
+        dismissHomeDialogs();
+        mHandler.removeCallbacksAndMessages(null);
+        super.onDestroy();
+        unregisterEventBus();
+        if (isFinishing()) {
+            ControlManager.get().stopServer();
+        }
+    }
+
+    private void unregisterEventBus() {
+        if (eventBusRegistered) {
+            EventBus.getDefault().unregister(this);
+            eventBusRegistered = false;
+        }
+    }
+
+    private SourceSwitchPopup mSiteSwitchPopup;
+
+    /**
+     * 首页空状态里「换个数据源」的动作。
+     * 有多个可切换站点就直接弹列表；只有一个（或一个都没有）时，
+     * 真正该去的是数据源地址页，而不是弹一个只有一项的列表。
+     */
+    public void onHomeEmptyAction() {
+        if (isActivityUnavailable()) return;
+        List<SourceBean> sites = ApiConfig.get().getSwitchSourceBeanList();
+        if (sites != null && sites.size() > 1) {
+            showSiteSwitch();
+        } else {
+            jumpActivity(ApiSettingActivity.class);
+        }
+    }
+
+    /**
+     * 右上角胶囊点开的数据源菜单。
+     *
+     * <p>以前是居中 {@link com.github.tvbox.osc.ui.dialog.SelectDialog}：一块 85% 宽的面板
+     * 压在页面正中间。问题是它遮住了刚加载出来的内容，而用户其实只想换个站点。
+     * 现在是贴着胶囊往下展开的玻璃菜单，视线不用离开右上角。
+     */
+    public void showSiteSwitch() {
+        if (isActivityUnavailable()) return;
+        List<SourceBean> sites = ApiConfig.get().getSwitchSourceBeanList();
+        if (sites == null || sites.isEmpty()) return;
+        int select = sites.indexOf(ApiConfig.get().getHomeSourceBean());
+        if (select < 0 || select >= sites.size()) select = 0;
+        if (mSiteSwitchPopup == null) {
+            mSiteSwitchPopup = new SourceSwitchPopup(this);
+        }
+        mSiteSwitchPopup.show(tvMenu, sites, select, new SourceSwitchPopup.OnSourceSelectedListener() {
+            @Override
+            public void onSourceSelected(SourceBean bean) {
+                if (bean == null) return;
+                previousHomeSource = ApiConfig.get().getHomeSourceBean();
+                ApiConfig.get().setSourceBean(bean);
+                refreshHome(false);
+            }
+        });
+    }
+
+    private void refreshHome() {
+        refreshHome(true);
+    }
+
+    private void refreshHomeSort() {
+        SourceBean home = ApiConfig.get().getHomeSourceBean();
+        if (home != null) {
+            SourceViewModel.clearSortCache(home.getKey());
+        }
+        refreshHome(false);
+    }
+
+    private void refreshHome(final boolean restart) {
+        if (Thread.currentThread() != android.os.Looper.getMainLooper().getThread()) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    refreshHome(restart);
+                }
+            });
+            return;
+        }
+        if (isActivityUnavailable()) {
+            return;
+        }
+        dismissHomeDialogs();
+        if (!restart) {
+            loadHomeSort(true);
+            return;
+        }
+        Intent intent = new Intent(getApplicationContext(), HomeActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("useCache", true);
+        intent.putExtras(bundle);
+        HomeActivity.this.startActivity(intent);
+    }
+
+    private boolean isActivityUnavailable() {
+        return isFinishing() || (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR1 && isDestroyed());
+    }
+
+    private void dismissHomeDialogs() {
+        dismissConfigErrorDialog();
+        dismissSiteSwitchDialog();
+    }
+
+    private void dismissConfigErrorDialog() {
+        if (mConfigErrorDialog != null) {
+            if (mConfigErrorDialog.isShowing()) {
+                mConfigErrorDialog.dismiss();
+            }
+            mConfigErrorDialog = null;
+        }
+    }
+
+    private void dismissSiteSwitchDialog() {
+        if (mSiteSwitchPopup != null) {
+            mSiteSwitchPopup.dismiss();
+            mSiteSwitchPopup = null;
+        }
+    }
+
+    private void refreshEmpty() {
+        loadingSourceKey = null;
+        showSuccess();
+        cancelHomeSortLoading();
+        clearHomePages();
+        sortAdapter.setNewData(DefaultConfig.adjustSort(ApiConfig.get().getHomeSourceBean().getKey(), new ArrayList<>(), false));
+        setupTabs();
+        initViewPager(null);
+        stopSourceChipBlink();
+    }
+
+    private void cancelHomeSortLoading() {
+        homeSortLoading = false;
+        loadingSourceKey = null;
+        stopSourceChipBlink();
+        if (previousHomeSource != null) {
+            ApiConfig.get().setSourceBean(previousHomeSource);
+        }
+        if (!TextUtils.isEmpty(previousHomeName)) {
+            setSourceChipText(previousHomeName);
+        }
+        previousHomeSource = null;
+        previousHomeName = null;
+    }
+}
