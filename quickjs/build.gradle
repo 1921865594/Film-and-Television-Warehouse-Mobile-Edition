@@ -1,0 +1,35 @@
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    namespace "com.github.mbox.quickjs.bridge"
+    compileSdkVersion 37
+
+    buildFeatures {
+        buildConfig false
+    }
+
+    defaultConfig {
+        minSdkVersion 19
+        targetSdkVersion 28
+        ndk { abiFilters 'arm64-v8a' }
+    }
+
+    buildTypes {
+        debug {
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    api 'wang.harlon.quickjs:wrapper-android:3.2.3'
+}
