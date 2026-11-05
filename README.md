@@ -13,10 +13,12 @@
 </p>
 
 ### 界面
-![赞赏](https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E6%88%91%E7%9A%84%E9%A1%B5%E9%9D%A2.png)
-![赞赏](https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E9%A6%96%E9%A1%B5.png)
-
-
+<table>
+  <tr>
+    <td><img src="https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E6%88%91%E7%9A%84%E9%A1%B5%E9%9D%A2.png" width="450"></td>
+    <td><img src="https://github.com/1921865594/_Film-and-Television-Warehouse-Mobile-Edition/blob/main/%E9%A6%96%E9%A1%B5.png" width="450"></td>
+  </tr>
+</table>
 
 **默认中文说明。** [English](#english)
 
