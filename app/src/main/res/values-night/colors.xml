@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  夜间主题：只覆盖 values/colors.xml 里那套「界面语义色」。
+  原来的 color_XXX 系列是绝对色（大量用在播放器深色浮层上），这里刻意不覆盖，
+  避免夜间模式下播放器控制条被一起改色。
+-->
+<resources>
+    <color name="ui_bg">#FF0E0E12</color>
+    <color name="ui_surface">#FF14141A</color>
+    <color name="ui_surface_alt">#FF1F1F26</color>
+    <color name="ui_surface_pressed">#FF2A2A33</color>
+    <color name="ui_bar_bg">#FF17171C</color>
+    <color name="ui_text_primary">#FFFFFFFF</color>
+    <color name="ui_text_secondary">#BBFFFFFF</color>
+    <color name="ui_text_tertiary">#6CFFFFFF</color>
+    <color name="ui_text_hint">#66FFFFFF</color>
+    <color name="ui_divider">#1FFFFFFF</color>
+    <color name="ui_icon">#FFFFFFFF</color>
+    <color name="ui_chip_bg">#1FFFFFFF</color>
+    <color name="ui_accent">#FF02F8E1</color>
+    <color name="ui_link">#FF6EA8FF</color>
+    <color name="ui_muted">#FF7A7A7A</color>
+    <color name="ui_danger">#FFFF6B6B</color>
+    <color name="ui_accent_soft">#1A02F8E1</color>
+    <color name="ui_poster_placeholder">#FF1E1E1E</color>
+    <color name="ui_poster_stroke">#24FFFFFF</color>
+    <color name="ui_material">#F50E0E12</color>
+
+    <!-- 弹窗调色板：夜间保持深色面板（日间那套浅色在 values/colors.xml 里） -->
+    <color name="dialog_panel_bg">#D91D202A</color>
+    <color name="dialog_panel_stroke">#33FFFFFF</color>
+    <color name="dialog_control_bg">#80353744</color>
+    <color name="dialog_control_bg_focused">#CC1890FF</color>
+    <color name="dialog_control_stroke">#22FFFFFF</color>
+    <color name="dialog_control_stroke_focused">#CC02F8E1</color>
+    <color name="dialog_input_bg">#66353744</color>
+    <color name="dialog_text_primary">#FFFFFFFF</color>
+    <color name="dialog_text_hint">#80FFFFFF</color>
+
+    <!-- 壁纸模式下的半透明表面（夜间用深色半透明，保证白色文字可读） -->
+    <color name="ui_surface_glass">#B814141A</color>
+    <color name="ui_material_glass">#CC0E0E12</color>
+    <color name="ui_bar_glass">#CC17171C</color>
+
+    <!-- Liquid Glass：夜间是带 alpha 的深灰玻璃，描边换成极淡的亮色（深底上才看得见边缘） -->
+    <color name="glass_bar_bg">#B31E1E22</color>
+    <color name="glass_bar_stroke">#33FFFFFF</color>
+    <color name="glass_bar_highlight">#1AFFFFFF</color>
+    <color name="glass_menu_bg">#F21B1B20</color>
+    <color name="glass_menu_stroke">#2EFFFFFF</color>
+    <!-- 「我的」页分组玻璃容器：夜间深灰玻璃（略更实，深底上白字才稳），亮边勾轮廓 -->
+    <color name="glass_card_fill">#DD14141A</color>
+    <color name="glass_card_stroke">#2EFFFFFF</color>
+    <color name="glass_card_highlight">#26FFFFFF</color>
+
+    <!-- 开关：夜间关闭态轨道提亮一档，深色滑块靠细亮边跟轨道拉开层次 -->
+    <color name="switch_track_off">#33FFFFFF</color>
+    <color name="switch_thumb_stroke">#2EFFFFFF</color>
+
+    <color name="glass_indicator_fill">#1F02F8E1</color>
+    <color name="glass_indicator_stroke">#5C02F8E1</color>
+    <color name="glass_indicator_highlight">#1FFFFFFF</color>
+</resources>

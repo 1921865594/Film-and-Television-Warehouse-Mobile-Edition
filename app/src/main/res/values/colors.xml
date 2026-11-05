@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      以下 color_XXX 系列是历史遗留的绝对色（TV 版沿用），名字与值并不总是一致：
+      color_FFB800 是 #FF6600、color_99FFFFFF 是 #4D000000、color_CCFFFFFF 是 #BBFFFFFF。
+      新增界面请一律使用文件下半部分的 ui_* 语义色，不要再引用这些。
+    -->
+    <color name="color_6200EE">#6200EE</color>
+    <color name="color_3700B3">#3700B3</color>
+    <color name="color_03DAC5">#03DAC5</color>
+    <color name="title_fouse_n">#ffce7900</color>
+    <color name="color_1890FF">#1890FF</color>
+    <color name="color_FFB800">#FF6600</color>
+    <color name="color_00FF0A">#00FF0A</color>
+    <color name="color_CBF46A">#CBF46A</color>
+    <color name="color_FF90CA09">#90CA09</color>
+    <color name="color_BD0CADE2">#BD0CADE2</color>
+    <color name="color_FF0057">#FF0057</color>
+    <color name="color_FF5F00">#FF5F00</color>
+    <color name="color_00796B">#00796B</color>
+    <color name="color_FFB6C1">#FFB6C1</color>
+    <color name="color_3D3D3D">#3D3D3D</color>
+    <color name="color_32364E">#32364E</color>
+    <color name="color_6632364E">#6632364E</color>
+    <color name="color_CCFFFFFF">#BBFFFFFF</color>
+    <color name="color_0CADE2">#0CADE2</color>
+    <color name="color_6CFFFFFF">#6CFFFFFF</color>
+    <color name="color_66000000">#66000000</color>
+    <color name="color_99000000">#99000000</color>
+    <color name="color_FFFFFF_50">#80FFFFFF</color>
+    <color name="color_CC000000">#CC000000</color>
+    <color name="color_000000_30">#48000000</color>
+    <color name="color_02F8E1">#02F8E1</color>
+    <color name="color_353744">#353744</color>
+    <color name="color_CC353744">#CC353744</color>
+    <color name="color_6C3D3D3D">#6c3d3d3d</color>
+    <color name="color_BBFFFFFF">#bbffffff</color>
+    <color name="color_FFFFFF">#ffffffff</color>
+    <color name="color_33FFFFFF">#33ffffff</color>
+    <color name="color_99FFFFFF">#4D000000</color>
+    <color name="color_59353744">#59353744</color>
+    <color name="color_80FF0057">#66FF0057</color>
+    <color name="color_000000_60">#99000000</color>
+    <color name="color_dialog_bg">#88000000</color>
+    <color name="color_scrollview_bg">#44000000</color>
+    <color name="color_text_primary">#FFFF0000</color>
+
+    <!--
+      统一弹窗调色板。日间为浅色面板，夜间在 values-night/colors.xml 里覆盖回深色。
+      所有 dialog_* 都只用于弹窗内部（顶栏、按钮、输入框、文字），不用于播放器浮层。
+    -->
+    <color name="dialog_panel_bg">#FFF8F9FB</color>
+    <color name="dialog_panel_stroke">#1F000000</color>
+    <color name="dialog_control_bg">#FFEDEFF4</color>
+    <color name="dialog_control_bg_focused">#FFD9EEE9</color>
+    <color name="dialog_control_stroke">#1A000000</color>
+    <color name="dialog_control_stroke_focused">#FF007A70</color>
+    <color name="dialog_input_bg">#FFEDEFF4</color>
+    <color name="dialog_text_primary">#FF17181D</color>
+    <color name="dialog_text_hint">#66000000</color>
+
+    <!--
+      ==================== 界面语义色（日间） ====================
+      这些颜色在 values-night/colors.xml 里有同名覆盖。
+      页面/卡片/文字/分隔线一律引用这里的语义色，不要再写死 #0E0E12 这类字面量，
+      否则「外观主题 → 日间/夜间」切换时那部分界面不会跟着变。
+      播放器控制层（player_*）始终是深色浮层，不使用这套语义色。
+    -->
+    <!-- 页面底色（window background 也用这个） -->
+    <color name="ui_bg">#FFF3F4F7</color>
+    <!-- 顶栏 / 底栏 / 卡片 -->
+    <color name="ui_surface">#FFFFFFFF</color>
+    <!-- 次级卡片 / 输入框 / 占位块 -->
+    <color name="ui_surface_alt">#FFF0F1F5</color>
+    <!-- 可点表面按下态（假搜索框等） -->
+    <color name="ui_surface_pressed">#FFE4E6EC</color>
+    <!-- 历史、收藏页底部操作条 -->
+    <color name="ui_bar_bg">#FFFFFFFF</color>
+    <!-- 主文字 -->
+    <color name="ui_text_primary">#FF17181D</color>
+    <!-- 次要文字（说明、副标题） -->
+    <color name="ui_text_secondary">#99000000</color>
+    <!-- 三级文字（提示、禁用） -->
+    <color name="ui_text_tertiary">#4D000000</color>
+    <!-- 输入框 hint -->
+    <color name="ui_text_hint">#66000000</color>
+    <!-- 分隔线 -->
+    <color name="ui_divider">#14000000</color>
+    <!-- 图标着色 -->
+    <color name="ui_icon">#FF2A2C33</color>
+    <!-- 小胶囊背景（年份、备注、按钮底） -->
+    <color name="ui_chip_bg">#FFE7E9EF</color>
+    <!--
+      品牌强调色（日间用深一档保证白底可读）
+
+      #00A396 在白底上只有 3.14:1，12sp 的选中态标签（底部导航）读不清；
+      #007A70 在白底 5.23:1、在 ui_bg 上 4.75:1，同时满足小字 4.5:1
+      和非文字控件 3:1（页签指示条）。
+    -->
+    <color name="ui_accent">#FF007A70</color>
+    <!-- 链接 / 可点击文字 -->
+    <color name="ui_link">#FF2A6BE0</color>
+    <!-- 弱化文字（灰色说明） -->
+    <color name="ui_muted">#FF8A8F99</color>
+    <!-- 危险操作（删除） -->
+    <color name="ui_danger">#FFD9343C</color>
+    <!-- 强调色的浅底（选中态胶囊、标签底色） -->
+    <color name="ui_accent_soft">#1A007A70</color>
+    <!-- 海报占位底色 / 描边 -->
+    <color name="ui_poster_placeholder">#FFE2E4EA</color>
+    <color name="ui_poster_stroke">#14000000</color>
+    <!-- 浮动栏（底部导航）的半透明「材质」：近似 iOS 毛玻璃观感 -->
+    <color name="ui_material">#F5FFFFFF</color>
+
+    <!--
+      ==================== Liquid Glass（浮动胶囊导航 / 下拉菜单） ====================
+      一套「半透明玻璃」的材质色。日间是带 alpha 的白玻璃，夜间是带 alpha 的深灰玻璃；
+      描边单独一层，模拟玻璃边缘的高光（日间用极淡的暗色勾边，夜间用极淡的亮色勾边，
+      因为玻璃边缘的可见性取决于它压着的底色，不是取决于它自己是亮是暗）。
+    -->
+    <!-- 底部导航胶囊主体（85% 白） -->
+    <color name="glass_bar_bg">#D9FFFFFF</color>
+    <!-- 胶囊描边：日间压在浅底上，靠一点点暗边勾出轮廓 -->
+    <color name="glass_bar_stroke">#1A000000</color>
+    <!-- 顶部高光渐变（从玻璃上沿往下淡出） -->
+    <color name="glass_bar_highlight">#66FFFFFF</color>
+    <!-- 下拉菜单面板：比导航条更实一点，避免背后文字透过来干扰阅读 -->
+    <color name="glass_menu_bg">#F2FFFFFF</color>
+    <color name="glass_menu_stroke">#1A000000</color>
+    <!-- 「我的」页分组玻璃容器：填充比底部导航更透一点透壁纸，描边/高光同导航一套逻辑 -->
+    <color name="glass_card_fill">#D9FFFFFF</color>
+    <color name="glass_card_stroke">#1A000000</color>
+    <color name="glass_card_highlight">#4DFFFFFF</color>
+
+    <!-- 开关（SpringSwitch）：关闭态轨道压暗一档，滑块用表面色加细描边保证在两种轨道上都看得见 -->
+    <color name="switch_track_off">#33000000</color>
+    <color name="switch_thumb_stroke">#26000000</color>
+
+    <!--
+      选中指示器：品牌色的低透明度填充 + 稍高透明度的描边，像一枚有色玻璃透镜。
+
+      填充刻意压到 8%（#14）：透镜下面是 12sp 的选中态标签，
+      品牌色 #007A70 在白底上是 5.23:1，任何有色叠加都会把这个比值往下拉 ——
+      8% 的青色叠加后是 4.58:1，刚好还在 AA 线（4.5:1）之上；
+      再深一档（16%）就掉到 3.96:1 了。
+      所以"看得见"这件事交给描边和顶高光去做，填充只负责染色。
+    -->
+    <color name="glass_indicator_fill">#14007A70</color>
+    <color name="glass_indicator_stroke">#4D007A70</color>
+    <!-- 指示器顶部高光 -->
+    <color name="glass_indicator_highlight">#59FFFFFF</color>
+
+    <!--
+      壁纸模式（自定义配图 / 纯色背景）下的半透明表面。
+      用户设了背景时，顶栏、底栏、卡片会换成这几个颜色，让配图真正透出来；
+      没设背景时依旧用上面的不透明色，避免多画一层透明合成。
+    -->
+    <color name="ui_surface_glass">#B8FFFFFF</color>
+    <color name="ui_material_glass">#CCFFFFFF</color>
+    <color name="ui_bar_glass">#CCFFFFFF</color>
+</resources>

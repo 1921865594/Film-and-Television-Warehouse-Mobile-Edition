@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ui_bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/vs_12"
+        android:paddingLeft="@dimen/vs_12"
+        android:paddingEnd="@dimen/vs_12"
+        android:paddingRight="@dimen/vs_12">
+
+        <ImageView
+            android:id="@+id/ivBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
+            android:padding="9dp"
+            android:src="@drawable/icon_back"
+            android:tint="@color/ui_icon" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/vs_8"
+            android:text="网盘Token"
+            android:textColor="@color/ui_text_primary"
+            android:textSize="@dimen/ts_24"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/ui_divider" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/vs_18"
+        android:paddingLeft="@dimen/vs_18"
+        android:paddingTop="@dimen/vs_18"
+        android:paddingEnd="@dimen/vs_18"
+        android:paddingRight="@dimen/vs_18"
+        android:paddingBottom="@dimen/vs_18">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/cardAliyun"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_phone_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/vs_12">
+
+                <ImageView
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:contentDescription="阿里云盘"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/alicloud" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_12"
+                    android:text="阿里云盘"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ts_18"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvAliyunStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_6"
+                    android:text="未导入"
+                    android:textColor="@color/ui_muted"
+                    android:textSize="@dimen/ts_14" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="@dimen/vs_12"
+                android:layout_height="1dp" />
+
+            <LinearLayout
+                android:id="@+id/cardQuark"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_phone_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/vs_12">
+
+                <ImageView
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:contentDescription="夸克网盘"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/quark" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_12"
+                    android:text="夸克网盘"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ts_18"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvQuarkStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_6"
+                    android:text="未导入"
+                    android:textColor="@color/ui_muted"
+                    android:textSize="@dimen/ts_14" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="@dimen/vs_12" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/cardUc"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_phone_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/vs_12">
+
+                <ImageView
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:contentDescription="UC网盘"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ucmobile" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_12"
+                    android:text="UC网盘"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ts_18"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvUcStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_6"
+                    android:text="未导入"
+                    android:textColor="@color/ui_muted"
+                    android:textSize="@dimen/ts_14" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="@dimen/vs_12"
+                android:layout_height="1dp" />
+
+            <LinearLayout
+                android:id="@+id/cardBaidu"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@drawable/bg_phone_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="@dimen/vs_12">
+
+                <ImageView
+                    android:layout_width="104dp"
+                    android:layout_height="104dp"
+                    android:contentDescription="百度网盘"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/baidu" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_12"
+                    android:text="百度网盘"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ts_18"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvBaiduStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/vs_6"
+                    android:text="未导入"
+                    android:textColor="@color/ui_muted"
+                    android:textSize="@dimen/ts_14" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btnManualImportCredential"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="@dimen/vs_12"
+            android:background="@drawable/bg_chip"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:text="手动导入 Token / Cookie"
+            android:textColor="@color/ui_accent"
+            android:textSize="@dimen/ts_16"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/vs_8"
+            android:gravity="center"
+            android:text="点击图标打开官方登录页；登录后自动保存阿里云盘 refresh_token 或夸克、UC、百度网盘 Cookie；长按图标复制凭据。已有凭据会保存在本机；检测到新的有效登录认证信息时才会自动覆盖，也可手动导入或清除。"
+            android:textColor="@color/ui_muted"
+            android:textSize="@dimen/ts_14" />
+    </LinearLayout>
+</LinearLayout>

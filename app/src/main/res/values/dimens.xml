@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      文本尺寸（手机，360 宽基准）
+
+      必须用 sp，不能用 dp：
+      AutoSize 只改写 density、不改 fontScale，写成 dp 的话文字完全无视
+      系统「字体大小」设置（无障碍设置里最大可到 200%）。
+      改成 sp 后两层缩放会叠加（AutoSize 的 density × 系统的 fontScale），
+      所以任何装文字的地方都不要写死高度，用 minHeight + wrap_content。
+    -->
+    <dimen name="ts_10">10sp</dimen>
+    <dimen name="ts_14">12sp</dimen>
+    <dimen name="ts_16">13sp</dimen>
+    <dimen name="ts_18">14sp</dimen>
+    <dimen name="ts_19">14sp</dimen>
+    <dimen name="ts_20">14sp</dimen>
+    <dimen name="ts_22">15sp</dimen>
+    <dimen name="ts_24">16sp</dimen>
+    <dimen name="ts_26">15sp</dimen>
+    <dimen name="ts_28">16sp</dimen>
+    <dimen name="ts_30">17sp</dimen>
+    <dimen name="ts_34">20sp</dimen>
+    <dimen name="ts_40">22sp</dimen>
+    <dimen name="ts_50">28sp</dimen>
+    <dimen name="ts_100">40sp</dimen>
+
+    <!-- 焦点描边 / 圆角（dp） -->
+    <dimen name="focus_border_1">1dp</dimen>
+    <dimen name="focus_border_2">2dp</dimen>
+    <dimen name="radius_5">4dp</dimen>
+    <dimen name="radius_10">8dp</dimen>
+    <dimen name="radius_20">14dp</dimen>
+    <dimen name="preview_player_radius">10dp</dimen>
+
+    <!-- 负边距（dp） -->
+    <dimen name="vs_4_">-2dp</dimen>
+    <dimen name="vs_20_">-8dp</dimen>
+    <dimen name="vs_25_">-10dp</dimen>
+    <dimen name="vs_60_">-16dp</dimen>
+
+    <!-- 间距 / 尺寸（手机 dp，360 宽基准） -->
+    <dimen name="vs_0">0dp</dimen>
+    <dimen name="vs_1">1dp</dimen>
+    <dimen name="vs_2">2dp</dimen>
+    <dimen name="vs_3">2dp</dimen>
+    <dimen name="vs_4">4dp</dimen>
+    <dimen name="vs_5">4dp</dimen>
+    <dimen name="vs_6">6dp</dimen>
+    <dimen name="vs_7">6dp</dimen>
+    <dimen name="vs_8">8dp</dimen>
+    <dimen name="vs_10">8dp</dimen>
+    <dimen name="vs_12">10dp</dimen>
+    <dimen name="vs_14">12dp</dimen>
+    <dimen name="vs_15">12dp</dimen>
+    <dimen name="vs_16">13dp</dimen>
+    <dimen name="vs_18">14dp</dimen>
+    <dimen name="vs_20">14dp</dimen>
+    <dimen name="vs_24">16dp</dimen>
+    <dimen name="vs_28">18dp</dimen>
+    <dimen name="vs_30">16dp</dimen>
+    <dimen name="vs_35">20dp</dimen>
+    <dimen name="vs_40">20dp</dimen>
+    <dimen name="vs_45">24dp</dimen>
+    <dimen name="vs_48">24dp</dimen>
+    <dimen name="vs_50">16dp</dimen>
+    <dimen name="vs_56">22dp</dimen>
+    <dimen name="vs_60">24dp</dimen>
+    <dimen name="vs_70">28dp</dimen>
+    <dimen name="vs_76">32dp</dimen>
+    <dimen name="vs_80">32dp</dimen>
+    <dimen name="vs_90">36dp</dimen>
+    <dimen name="vs_100">40dp</dimen>
+    <dimen name="vs_108">44dp</dimen>
+    <dimen name="vs_120">48dp</dimen>
+    <dimen name="vs_128">52dp</dimen>
+    <dimen name="vs_130">52dp</dimen>
+    <dimen name="vs_140">56dp</dimen>
+    <dimen name="vs_150">56dp</dimen>
+    <dimen name="vs_160">60dp</dimen>
+    <dimen name="vs_162">64dp</dimen>
+    <dimen name="vs_165">64dp</dimen>
+    <dimen name="vs_170">64dp</dimen>
+    <dimen name="vs_180">68dp</dimen>
+    <dimen name="vs_190">72dp</dimen>
+    <dimen name="vs_200">80dp</dimen>
+    <dimen name="vs_204">80dp</dimen>
+    <dimen name="vs_214">120dp</dimen>
+    <dimen name="vs_220">88dp</dimen>
+    <dimen name="vs_230">92dp</dimen>
+    <dimen name="vs_240">96dp</dimen>
+    <dimen name="vs_250">100dp</dimen>
+    <dimen name="vs_270">108dp</dimen>
+    <dimen name="vs_272">108dp</dimen>
+    <dimen name="vs_280">110dp</dimen>
+    <dimen name="vs_300">120dp</dimen>
+    <dimen name="vs_320">128dp</dimen>
+    <dimen name="vs_340">140dp</dimen>
+    <dimen name="vs_360">144dp</dimen>
+    <dimen name="vs_390">156dp</dimen>
+    <dimen name="vs_400">160dp</dimen>
+    <dimen name="vs_410">164dp</dimen>
+    <dimen name="vs_420">168dp</dimen>
+    <dimen name="vs_440">176dp</dimen>
+    <dimen name="vs_470">188dp</dimen>
+    <dimen name="vs_480">192dp</dimen>
+    <dimen name="vs_520">200dp</dimen>
+    <dimen name="vs_600">240dp</dimen>
+    <dimen name="vs_610">244dp</dimen>
+    <dimen name="vs_640">256dp</dimen>
+    <dimen name="vs_720">288dp</dimen>
+    <dimen name="vs_960">320dp</dimen>
+</resources>
