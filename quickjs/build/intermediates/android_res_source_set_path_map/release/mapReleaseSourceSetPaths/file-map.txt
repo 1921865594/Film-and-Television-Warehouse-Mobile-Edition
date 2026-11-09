@@ -1,9 +1,0 @@
-com.github.mbox.quickjs.bridge.quickjs-pngs-0 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/build/generated/res/pngs/release
-com.github.mbox.quickjs.bridge.quickjs-updated_navigation_xml-1 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/build/generated/updated_navigation_xml/release
-com.github.mbox.quickjs.bridge.quickjs-mergeReleaseResources-2 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
-com.github.mbox.quickjs.bridge.quickjs-mergeReleaseResources-3 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
-com.github.mbox.quickjs.bridge.quickjs-release-4 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/build/intermediates/merged_res/release/mergeReleaseResources
-com.github.mbox.quickjs.bridge.quickjs-release-5 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/build/intermediates/packaged_res/release/packageReleaseResources
-com.github.mbox.quickjs.bridge.quickjs-main-6 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/src/main/res
-com.github.mbox.quickjs.bridge.quickjs-release-7 /storage/emulated/0/AndroidCSProjects/MBox/quickjs/src/release/res
-gradleHome-0 /data/data/com.acside/files/home/.gradle
