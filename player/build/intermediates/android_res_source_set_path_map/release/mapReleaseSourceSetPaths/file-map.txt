@@ -1,9 +1,0 @@
-com.github.tvbox.osc.player-pngs-0 /storage/emulated/0/AndroidCSProjects/MBox/player/build/generated/res/pngs/release
-com.github.tvbox.osc.player-updated_navigation_xml-1 /storage/emulated/0/AndroidCSProjects/MBox/player/build/generated/updated_navigation_xml/release
-com.github.tvbox.osc.player-mergeReleaseResources-2 /storage/emulated/0/AndroidCSProjects/MBox/player/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
-com.github.tvbox.osc.player-mergeReleaseResources-3 /storage/emulated/0/AndroidCSProjects/MBox/player/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
-com.github.tvbox.osc.player-release-4 /storage/emulated/0/AndroidCSProjects/MBox/player/build/intermediates/merged_res/release/mergeReleaseResources
-com.github.tvbox.osc.player-release-5 /storage/emulated/0/AndroidCSProjects/MBox/player/build/intermediates/packaged_res/release/packageReleaseResources
-com.github.tvbox.osc.player-main-6 /storage/emulated/0/AndroidCSProjects/MBox/player/src/main/res
-com.github.tvbox.osc.player-release-7 /storage/emulated/0/AndroidCSProjects/MBox/player/src/release/res
-gradleHome-0 /data/data/com.acside/files/home/.gradle
