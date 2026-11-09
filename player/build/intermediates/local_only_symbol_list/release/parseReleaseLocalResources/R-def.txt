@@ -1,0 +1,13 @@
+R_DEF: Internal format may change without notice
+local
+attr? enableAudioFocus
+attr? looping
+attr? playerBackgroundColor
+attr? screenScaleType
+id type_16_9
+id type_4_3
+id type_center_crop
+id type_default
+id type_match_parent
+id type_original
+styleable VideoView looping enableAudioFocus screenScaleType playerBackgroundColor
